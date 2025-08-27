@@ -202,7 +202,7 @@ export default {
 
 
 const demo_text = `
-Hello, thank you for coming for the interview. Please introduce yourself.
+Hello, thank you for coming for the interview. Please introduce yourself
 
 I'm Jhon, currently an undergraduate student majoring in Data Science at HK University. I am in the top 10% of my class, specializing in deep learning and proficient in web development. Additionally, I have contributed to several well-known open-source projects as mentioned in my resume.
 
