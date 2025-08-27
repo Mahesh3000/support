@@ -19,7 +19,7 @@
           <i class="el-icon-s-custom"></i>
           GPT Answer
         </div>
-        <LoadingIcon v-show="show_ai_thinking_effect"/>
+        <LoadingIcon v-show="show_ai_thinking_effect" />
         <div class="ai_result_content">{{ ai_result }}</div>
         <div class="single_part_bottom_bar">
           <el-button icon="el-icon-thumb" @click="askCurrentText" :disabled="!isGetGPTAnswerAvailable">
@@ -29,16 +29,12 @@
       </div>
     </div>
     <div class="title_function_bar">
-      <el-button
-          type="success"
-          @click="startCopilot" v-show="state==='end'" :loading="copilot_starting"
-          :disabled="copilot_starting">Start Copilot
+      <el-button type="success" @click="startCopilot" v-show="state === 'end'" :loading="copilot_starting"
+        :disabled="copilot_starting">Start Copilot
       </el-button>
-      <el-button
-          :loading="copilot_stopping"
-          @click="userStopCopilot" v-show="state==='ing'">Stop Copilot
+      <el-button :loading="copilot_stopping" @click="userStopCopilot" v-show="state === 'ing'">Stop Copilot
       </el-button>
-      <MyTimer ref="MyTimer"/>
+      <MyTimer ref="MyTimer" />
     </div>
 
   </div>
@@ -51,6 +47,7 @@ import MyTimer from "@/components/MyTimer.vue";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 import OpenAI from "openai";
 import config_util from "../utils/config_util"
+
 
 export default {
   name: 'HomeView',
@@ -65,7 +62,7 @@ export default {
 
     }
   },
-  components: {LoadingIcon, MyTimer},
+  components: { LoadingIcon, MyTimer },
   data() {
     return {
       currentText: "",
@@ -87,7 +84,15 @@ export default {
   },
   methods: {
     async askCurrentText() {
-      const apiKey = localStorage.getItem("openai_key")
+      // const apiKey = localStorage.getItem("openai_key")
+      // let content = this.currentText
+      // this.ai_result = ""
+      // this.show_ai_thinking_effect = true
+      // const model = config_util.gpt_model()
+      // const gpt_system_prompt = config_util.gpt_system_prompt()
+      // content = gpt_system_prompt + "\n" + content
+
+      const apiKey = config_util.openai_key();   // ✅ use env fallback
       let content = this.currentText
       this.ai_result = ""
       this.show_ai_thinking_effect = true
@@ -100,10 +105,10 @@ export default {
           throw new Error("You should setup an Open AI Key!")
         }
 
-        const openai = new OpenAI({apiKey: apiKey, dangerouslyAllowBrowser: true})
+        const openai = new OpenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true })
         const stream = await openai.chat.completions.create({
           model: model,
-          messages: [{role: "user", content: content}],
+          messages: [{ role: "user", content: content }],
           stream: true,
         });
         this.show_ai_thinking_effect = false
@@ -121,12 +126,19 @@ export default {
       this.currentText = ""
     },
     async startCopilot() {
+      // this.copilot_starting = true
+      // const token = localStorage.getItem("azure_token")
+      // const region = config_util.azure_region()
+      // const language = config_util.azure_language()
+      // const openai_key = localStorage.getItem("openai_key")
+      // console.log({region, language})
+
       this.copilot_starting = true
-      const token = localStorage.getItem("azure_token")
-      const region = config_util.azure_region()
-      const language = config_util.azure_language()
-      const openai_key = localStorage.getItem("openai_key")
-      console.log({region, language})
+      const token = config_util.azure_token();   // ✅ use env fallback
+      const region = config_util.azure_region();
+      const language = config_util.azure_language();
+      const openai_key = config_util.openai_key(); // ✅ use env fallback
+      console.log({ region, language })
       try {
         if (!openai_key) {
           throw new Error("You should setup Open AI API Token")
@@ -162,17 +174,17 @@ export default {
       };
 
       recognizer.startContinuousRecognitionAsync(
-          () => {
-            this.copilot_starting = false
-            this.state = "ing"
-            this.$refs.MyTimer.start()
-            window.console.log("recognition started");
-          },
-          (err) => {
-            this.copilot_starting = false
-            this.currentText = "Start Failed:" + err
-            window.console.error("recogniton start failed", err);
-          })
+        () => {
+          this.copilot_starting = false
+          this.state = "ing"
+          this.$refs.MyTimer.start()
+          window.console.log("recognition started");
+        },
+        (err) => {
+          this.copilot_starting = false
+          this.currentText = "Start Failed:" + err
+          window.console.error("recogniton start failed", err);
+        })
     },
     userStopCopilot() {
       this.copilot_stopping = true
@@ -210,7 +222,6 @@ async function sleep(ms) {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-
 .homeview_container {
   display: flex;
   flex-direction: column;
@@ -229,9 +240,12 @@ async function sleep(ms) {
 }
 
 .box {
-  flex: 1; /* 设置flex属性为1，使两个div平分父容器的宽度 */
-  border: 1px lightgray solid; /* 为了演示，添加边框样式 */
-  padding: 10px; /* 为了演示，添加内边距 */
+  flex: 1;
+  /* 设置flex属性为1，使两个div平分父容器的宽度 */
+  border: 1px lightgray solid;
+  /* 为了演示，添加边框样式 */
+  padding: 10px;
+  /* 为了演示，添加内边距 */
   white-space: pre-wrap;
   display: flex;
   flex-direction: column;
@@ -251,7 +265,7 @@ async function sleep(ms) {
   display: flex;
 }
 
-.single_part_bottom_bar > .el-button {
+.single_part_bottom_bar>.el-button {
   flex-grow: 1;
 }
 
@@ -278,5 +292,4 @@ async function sleep(ms) {
   color: red;
   text-align: center;
 }
-
 </style>

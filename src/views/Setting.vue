@@ -14,8 +14,8 @@
     <div>
       <el-input placeholder="sk-xxxx" v-model="openai_key" @change="onKeyChange('openai_key')">
         <template slot="prepend">API Key:</template>
-      </el-input>
-    </div> -->
+</el-input>
+</div> -->
 
     <div class="separator">
       GPT Model:
@@ -27,8 +27,8 @@
 
     <div class="separator">
       <div class="desc_text">GPT Prompt:</div>
-      <el-input type="textarea" placeholder="You can setup custom prompt here" :rows="15"
-                v-model="gpt_system_prompt" @change="onKeyChange('gpt_system_prompt')"/>
+      <el-input type="textarea" placeholder="You can setup custom prompt here" :rows="15" v-model="gpt_system_prompt"
+        @change="onKeyChange('gpt_system_prompt')" />
     </div>
 
 
@@ -52,13 +52,13 @@
 
     <div class="desc_text">
       <span style="text-decoration: gray">zh-CN</span> for Chinese, See <a :href="full_language_codec_url"
-                                                                           target="_blank">here</a> for
+        target="_blank">here</a> for
       other language codes
     </div>
 
-<!--    <div>-->
-<!--      <el-button @click="toDef">set all setting to default</el-button>-->
-<!--    </div>-->
+    <!--    <div>-->
+    <!--      <el-button @click="toDef">set all setting to default</el-button>-->
+    <!--    </div>-->
 
   </div>
 </template>
@@ -75,7 +75,7 @@ export default {
       gpt_model: "gpt-3.5-turbo",
       gpt_system_prompt: "",
       azure_token: process.env.VUE_APP_AZURE_TOKEN || "",
-      azure_region: process.env.VUE_APP_AZURE_REGION || "eastus",      
+      azure_region: process.env.VUE_APP_AZURE_REGION || "eastus",
       azure_language: "en-US",
       open_ai_api_url: "https://platform.openai.com/api-keys",
       github_url: "https://github.com/interview-copilot/Interview-Copilot",
@@ -84,12 +84,19 @@ export default {
     }
   },
   mounted() {
-    this.openai_key = localStorage.getItem("openai_key")
-    this.gpt_system_prompt = config_util.gpt_system_prompt()
-    this.gpt_model = config_util.gpt_model()
-    this.azure_token = localStorage.getItem("azure_token")
-    this.azure_region = config_util.azure_region()
-    this.azure_language = config_util.azure_language()
+    // this.openai_key = localStorage.getItem("openai_key")
+    // this.gpt_system_prompt = config_util.gpt_system_prompt()
+    // this.gpt_model = config_util.gpt_model()
+    // this.azure_token = localStorage.getItem("azure_token")
+    // this.azure_region = config_util.azure_region()
+    // this.azure_language = config_util.azure_language()
+
+    this.openai_key = localStorage.getItem("openai_key") || process.env.VUE_APP_OPENAI_KEY || "";
+    this.gpt_system_prompt = config_util.gpt_system_prompt() || "";
+    this.gpt_model = config_util.gpt_model() || "gpt-3.5-turbo";
+    this.azure_token = localStorage.getItem("azure_token") || process.env.VUE_APP_AZURE_TOKEN || "";
+    this.azure_region = config_util.azure_region() || process.env.VUE_APP_AZURE_REGION || "eastus";
+    this.azure_language = config_util.azure_language() || "en-US";
   },
   methods: {
     onKeyChange(key_name) {
@@ -98,6 +105,13 @@ export default {
     },
     toDef() {
       localStorage.clear();
+      // reset with env defaults after clearing
+      this.openai_key = process.env.VUE_APP_OPENAI_KEY || "";
+      this.azure_token = process.env.VUE_APP_AZURE_TOKEN || "";
+      this.azure_region = process.env.VUE_APP_AZURE_REGION || "eastus";
+      this.azure_language = "en-US";
+      this.gpt_model = "gpt-3.5-turbo";
+      this.gpt_system_prompt = "";
     }
   }
 
@@ -107,7 +121,6 @@ export default {
 
 </script>
 <style scoped>
-
 .separator {
   margin-top: 10px;
 }
@@ -117,5 +130,4 @@ export default {
   font-size: small;
   margin-bottom: 3px;
 }
-
 </style>
