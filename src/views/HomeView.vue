@@ -26,6 +26,9 @@
             Ask GPT
           </el-button>
         </div>
+        <!-- <div class="homeview_container" @keyup.enter="askCurrentText" tabindex="0"> -->
+        <!-- rest of your template -->
+        <!-- </div> -->
       </div>
     </div>
     <div class="title_function_bar">
@@ -75,14 +78,24 @@ export default {
     }
   },
   async mounted() {
+    window.addEventListener("keyup", this.handleKeyUp);
+
     console.log("mounted")
     if (this.isDevMode) {
       // this.currentText = demo_text
     }
   },
   beforeDestroy() {
+    window.removeEventListener("keyup", this.handleKeyUp);
+
   },
   methods: {
+
+    handleKeyUp(e) {
+      if (e.key === "Enter" && this.currentText) {
+        this.askCurrentText();
+      }
+    },
     async askCurrentText() {
       // const apiKey = localStorage.getItem("openai_key")
       // let content = this.currentText
@@ -104,11 +117,15 @@ export default {
         if (!apiKey) {
           throw new Error("You should setup an Open AI Key!")
         }
+        let sentences = this.currentText.trim().split(/[\.\?\!]\s+/);
+        let lastSentence = sentences[sentences.length - 1];
 
         const openai = new OpenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true })
         const stream = await openai.chat.completions.create({
           model: model,
-          messages: [{ role: "user", content: content }],
+          messages: [{ role: "system", content: gpt_system_prompt },
+          { role: "user", content: lastSentence }   // ✅ only last sentence goes here 
+          ],
           stream: true,
         });
         this.show_ai_thinking_effect = false
