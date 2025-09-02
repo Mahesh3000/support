@@ -119,12 +119,12 @@ export default {
         }
         let sentences = this.currentText.trim().split(/[\.\?\!]\s+/);
         let lastSentence = sentences[sentences.length - 1];
-
+        console.log({ sentences, lastSentence })
         const openai = new OpenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true })
         const stream = await openai.chat.completions.create({
           model: model,
           messages: [{ role: "system", content: gpt_system_prompt },
-          { role: "user", content: lastSentence }   // ✅ only last sentence goes here 
+          { role: "user", content: sentences }   // ✅ only last sentence goes here 
           ],
           stream: true,
         });
