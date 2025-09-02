@@ -95,6 +95,17 @@ export default {
       if (e.key === "Enter" && this.currentText) {
         this.askCurrentText();
       }
+
+      // Press Escape → Clear all text
+      if (e.key === "Escape" && this.currentText) {
+        this.clearASRContent();
+      }
+
+      if (e.ctrlKey && e.key === "Backspace" && this.currentText) {
+        let sentences = this.currentText.trim().split(/[\.\?\!]\s+/);
+        sentences.pop(); // remove last sentence
+        this.currentText = sentences.join(". ") + (sentences.length ? "." : "");
+      }
     },
     async askCurrentText() {
       // const apiKey = localStorage.getItem("openai_key")
