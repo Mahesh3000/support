@@ -130,12 +130,11 @@ export default {
         }
         let sentences = this.currentText.trim().split(/[\.\?\!]\s+/);
         let lastSentence = sentences[sentences.length - 1];
-        console.log({ sentences, lastSentence })
         const openai = new OpenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true })
         const stream = await openai.chat.completions.create({
           model: model,
           messages: [{ role: "system", content: gpt_system_prompt },
-          { role: "user", content: sentences }   // ✅ only last sentence goes here 
+          { role: "user", content: sentences.join("") }  // ✅ only last sentence goes here 
           ],
           stream: true,
         });
@@ -145,6 +144,9 @@ export default {
           const text = chunk.choices[0]?.delta?.content || ""
           this.ai_result += text
         }
+
+        this.ai_result = this.ai_result.replace(/^\{|\}$/g, "");
+
       } catch (e) {
         this.show_ai_thinking_effect = false
         this.ai_result = "" + e
@@ -318,6 +320,6 @@ async function sleep(ms) {
 
 .error_msg {
   color: red;
-  text-align: center;
+  text-align:center;
 }
 </style>
