@@ -52,6 +52,7 @@ import OpenAI from "openai";
 import config_util from "../utils/config_util"
 
 
+
 export default {
   name: 'HomeView',
   props: {},
@@ -184,6 +185,14 @@ export default {
         speechConfig.speechRecognitionLanguage = language;
         const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         this.recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+
+        // const transcripti = await openai.audio.transcriptions.create({
+        //   file: fs.createReadStream("audio.mp3"),
+        //   model: "whisper-1"
+        // });
+
+        // console.log(transcripti.text);
       } catch (e) {
         this.currentText = e
         this.copilot_starting = false
@@ -216,6 +225,36 @@ export default {
           window.console.error("recogniton start failed", err);
         })
     },
+    // async startRecording() {
+    //   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    //   this.mediaRecorder = new MediaRecorder(stream);
+    //   let chunks = [];
+
+    //   this.mediaRecorder.ondataavailable = e => chunks.push(e.data);
+
+    //   this.mediaRecorder.onstop = async () => {
+    //     const blob = new Blob(chunks, { type: "audio/webm" });
+    //     const formData = new FormData();
+    //     formData.append("file", blob, "recording.webm");
+
+    //     const apiKey = config_util.openai_key();
+    //     const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    //       method: "POST",
+    //       headers: {
+    //         "Authorization": `Bearer ${apiKey}`
+    //       },
+    //       body: formData
+    //     });
+
+    //     const data = await response.json();
+    //     this.currentText += "\n" + data.text;
+    //   };
+
+    //   this.mediaRecorder.start();
+
+    //   // auto-stop after 5s for demo
+    //   setTimeout(() => this.mediaRecorder.stop(), 5000);
+    // },
     userStopCopilot() {
       this.copilot_stopping = true
       this.recognizer.stopContinuousRecognitionAsync(() => {
@@ -320,6 +359,6 @@ async function sleep(ms) {
 
 .error_msg {
   color: red;
-  text-align:center;
+  text-align: center;
 }
 </style>
