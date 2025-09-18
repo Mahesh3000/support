@@ -182,7 +182,18 @@ export default {
 
         const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(token, region);
         speechConfig.speechRecognitionLanguage = language;
-        const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        // const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        // this.recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+        const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const sys = await navigator.mediaDevices.getDisplayMedia({ audio: true });
+        const audioCtx = new AudioContext();
+        const dest = audioCtx.createMediaStreamDestination();
+
+        audioCtx.createMediaStreamSource(mic).connect(dest);
+        audioCtx.createMediaStreamSource(sys).connect(dest);
+        const mixedStream = dest.stream;
+
+        const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(mixedStream);
         this.recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
       } catch (e) {
         this.currentText = e
@@ -320,6 +331,6 @@ async function sleep(ms) {
 
 .error_msg {
   color: red;
-  text-align:center;
+  text-align: center;
 }
 </style>
