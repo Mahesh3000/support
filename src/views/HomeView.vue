@@ -24,28 +24,46 @@
 
       <!-- Center: Wide GPT Answer panel -->
       <div class="main_panel">
-        <div class="panel_header">
+        <!-- <div class="panel_header">
           <i class="el-icon-magic-stick"></i>
           <span>AI Insights</span>
           <el-button class="ask_inline_btn" type="primary" size="small" icon="el-icon-lightning" @click="askCurrentText"
             :disabled="!isGetGPTAnswerAvailable" :loading="show_ai_thinking_effect">
             Generate
           </el-button>
-        </div>
+        </div> -->
 
+        <div class="panel_header">
+          <i class="el-icon-magic-stick"></i>
+          <span>AI Insights</span>
+
+          <el-button v-show="state === 'end'" class="ask_inline_btn" type="success" size="small"
+            icon="el-icon-video-play" @click="startCopilot" :loading="copilot_starting" :disabled="copilot_starting">
+            Start Session
+          </el-button>
+
+          <el-button v-show="state === 'ing'" class="ask_inline_btn" size="small" icon="el-icon-video-pause"
+            @click="userStopCopilot" :loading="copilot_stopping">
+            Stop Session
+          </el-button>
+
+          <MyTimer ref="MyTimer" class="header_timer" />
+        </div>
         <div class="ai_result_wrapper">
           <LoadingIcon v-show="show_ai_thinking_effect" />
           <div v-if="!ai_result && !show_ai_thinking_effect" class="empty_state centered">
             <i class="el-icon-s-opportunity empty_icon large"></i>
-            <p>Press <kbd>Generate</kbd> anytime to get an AI response to the current transcription</p>
+            <p>Start the session to begin live transcription and get AI responses.</p>
             <p class="hint">You can also clear the transcript and ask a new question</p>
           </div>
           <div class="ai_result_content" v-if="ai_result">{{ ai_result }}</div>
         </div>
 
         <form class="panel_footer ask_bar" @submit.prevent="askCurrentText">
+          <!-- <input v-model="customQuestion" type="text" placeholder="Ask a question about the conversation..."
+            class="ask_input_native" @keydown.enter.prevent="askCurrentText" /> -->
           <input v-model="customQuestion" type="text" placeholder="Ask a question about the conversation..."
-            class="ask_input_native" @keydown.enter.prevent="askCurrentText" />
+            class="ask_input_native" />
           <el-button type="primary" size="small" icon="el-icon-s-promotion" :disabled="!isGetGPTAnswerAvailable"
             native-type="submit">
             Send
@@ -56,13 +74,13 @@
     </div>
 
     <!-- Bottom control bar -->
-    <div class="title_function_bar">
+    <!-- <div class="title_function_bar">
       <el-button type="success" icon="el-icon-video-play" @click="startCopilot" v-show="state === 'end'"
         :loading="copilot_starting" :disabled="copilot_starting">Start Session</el-button>
       <el-button icon="el-icon-video-pause" :loading="copilot_stopping" @click="userStopCopilot"
         v-show="state === 'ing'">Stop Session</el-button>
       <MyTimer ref="MyTimer" />
-    </div>
+    </div> -->
 
   </div>
 </template>
@@ -76,11 +94,13 @@ import config_util from "../utils/config_util"
 export default {
   name: 'HomeView',
   components: { LoadingIcon, MyTimer },
+
   computed: {
     isGetGPTAnswerAvailable() {
       return !!this.currentText
     }
   },
+
   data() {
     return {
       currentText: "",
@@ -95,36 +115,30 @@ export default {
       mediaRecorder: null,
     }
   },
+
+  mounted() {
+    window.addEventListener("keydown", this.handleGlobalEnter);
+  },
+
+  beforeDestroy() {
+    window.removeEventListener("keydown", this.handleGlobalEnter);
+  },
+
   methods: {
+    handleGlobalEnter(e) {
+      if (e.key !== "Enter") return;
 
-    // ─── GPT ───────────────────────────────────────────────────────────────
-    // async askCurrentText() {
-    //   const apiKey = config_util.openai_key();
-    //   let content = this.customQuestion || this.currentText
-    //   this.ai_result = ""
-    //   this.show_ai_thinking_effect = true
-    //   const model = config_util.gpt_model()
-    //   const gpt_system_prompt = config_util.gpt_system_prompt()
-    //   content = gpt_system_prompt + "\n" + content
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      const isTypingInField =
+        tag === "textarea" ||
+        (tag === "input" && document.activeElement?.type !== "button");
 
-    //   try {
-    //     if (!apiKey) throw new Error("You should setup an Open AI Key!")
-    //     const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true })
-    //     const stream = await openai.chat.completions.create({
-    //       model,
-    //       messages: [{ role: "user", content }],
-    //       stream: true,
-    //     });
-    //     this.show_ai_thinking_effect = false
-    //     for await (const chunk of stream) {
-    //       this.ai_result += chunk.choices[0]?.delta?.content || ""
-    //     }
-    //   } catch (e) {
-    //     this.show_ai_thinking_effect = false
-    //     this.ai_result = "" + e
-    //   }
-    // },
+      // optional: allow Enter everywhere except textarea
+      if (isTypingInField && tag === "textarea") return;
 
+      e.preventDefault();
+      this.askCurrentText();
+    },
 
     async askCurrentText() {
       if (this.show_ai_thinking_effect) return;
@@ -381,6 +395,10 @@ ${this.customQuestion || "Answer the last question from the transcription."}`
   overflow-y: auto;
   padding: 24px 32px;
   position: relative;
+}
+
+.header_timer {
+  margin-left: 8px;
 }
 
 .ai_result_content {
