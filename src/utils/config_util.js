@@ -43,6 +43,24 @@ function azure_token() {
   );
 }
 
+function deepgram_key() {
+  return (
+    localStorage.getItem("deepgram_key") ||
+    process.env.VUE_APP_DEEPGRAM_KEY ||
+    ""
+  );
+}
+
+function anthropic_key() {
+  console.log("mahesh", process.env.VUE_APP_ANTHROPIC_KEY);
+
+  return (
+    localStorage.getItem("anthropic_key") ||
+    process.env.VUE_APP_ANTHROPIC_KEY ||
+    ""
+  );
+}
+
 export default {
   gpt_system_prompt,
   azure_language,
@@ -50,4 +68,6 @@ export default {
   gpt_model,
   openai_key,
   azure_token,
+  deepgram_key,
+  anthropic_key,
 };
