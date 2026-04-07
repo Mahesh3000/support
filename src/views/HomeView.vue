@@ -24,14 +24,6 @@
 
       <!-- Center: Wide GPT Answer panel -->
       <div class="main_panel">
-        <!-- <div class="panel_header">
-          <i class="el-icon-magic-stick"></i>
-          <span>AI Insights</span>
-          <el-button class="ask_inline_btn" type="primary" size="small" icon="el-icon-lightning" @click="askCurrentText"
-            :disabled="!isGetGPTAnswerAvailable" :loading="show_ai_thinking_effect">
-            Generate
-          </el-button>
-        </div> -->
 
         <div class="panel_header">
           <i class="el-icon-magic-stick"></i>
@@ -49,6 +41,7 @@
 
           <MyTimer ref="MyTimer" class="header_timer" />
         </div>
+
         <div class="ai_result_wrapper">
           <LoadingIcon v-show="show_ai_thinking_effect" />
           <div v-if="!ai_result && !show_ai_thinking_effect" class="empty_state centered">
@@ -56,31 +49,22 @@
             <p>Start the session to begin live transcription and get AI responses.</p>
             <p class="hint">You can also clear the transcript and ask a new question</p>
           </div>
-          <div class="ai_result_content" v-if="ai_result">{{ ai_result }}</div>
+          <!-- ✅ v-html renders markdown as real HTML -->
+          <div class="ai_result_content" v-if="ai_result" v-html="renderedResult"></div>
         </div>
 
         <form class="panel_footer ask_bar" @submit.prevent="askCurrentText">
-          <!-- <input v-model="customQuestion" type="text" placeholder="Ask a question about the conversation..."
-            class="ask_input_native" @keydown.enter.prevent="askCurrentText" /> -->
           <input v-model="customQuestion" type="text" placeholder="Ask a question about the conversation..."
             class="ask_input_native" />
-          <el-button type="primary" size="small" icon="el-icon-s-promotion" :disabled="!isGetGPTAnswerAvailable"
-            native-type="submit">
+          <el-button type="primary" size="small" icon="el-icon-s-promotion"
+            :disabled="!isGetGPTAnswerAvailable || show_ai_thinking_effect" native-type="submit">
             Send
           </el-button>
         </form>
+
       </div>
 
     </div>
-
-    <!-- Bottom control bar -->
-    <!-- <div class="title_function_bar">
-      <el-button type="success" icon="el-icon-video-play" @click="startCopilot" v-show="state === 'end'"
-        :loading="copilot_starting" :disabled="copilot_starting">Start Session</el-button>
-      <el-button icon="el-icon-video-pause" :loading="copilot_stopping" @click="userStopCopilot"
-        v-show="state === 'ing'">Stop Session</el-button>
-      <MyTimer ref="MyTimer" />
-    </div> -->
 
   </div>
 </template>
@@ -88,17 +72,78 @@
 <script>
 import LoadingIcon from "@/components/LoadingIcon.vue";
 import MyTimer from "@/components/MyTimer.vue";
-import OpenAI from "openai";
-import config_util from "../utils/config_util"
+import config_util from "../utils/config_util";
+
+// ── Tiny markdown renderer (no extra dependencies) ───────────────────────────
+function renderMarkdown(text) {
+  if (!text) return "";
+
+  let html = text
+    // Escape raw HTML to prevent XSS
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+
+    // Code blocks (``` ... ```)
+    .replace(/```[\s\S]*?```/g, (match) => {
+      const code = match.replace(/^```[^\n]*\n?/, "").replace(/```$/, "");
+      return `<pre><code>${code}</code></pre>`;
+    })
+
+    // Inline code (`code`)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+
+    // Bold (**text** or __text__)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.+?)__/g, "<strong>$1</strong>")
+
+    // Italic (*text* or _text_)
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/_(.+?)_/g, "<em>$1</em>")
+
+    // Headings (###, ##, #)
+    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+
+    // Unordered lists (- item or * item)
+    .replace(/^[\*\-] (.+)$/gm, "<li>$1</li>")
+    .replace(/(<li>[\s\S]+?<\/li>)/g, "<ul>$1</ul>")
+    // Fix nested ul wrapping (multiple consecutive li)
+    .replace(/<\/ul>\s*<ul>/g, "")
+
+    // Numbered lists (1. item)
+    .replace(/^\d+\. (.+)$/gm, "<oli>$1</oli>")
+    .replace(/(<oli>[\s\S]+?<\/oli>)/g, "<ol>$1</ol>")
+    .replace(/<\/ol>\s*<ol>/g, "")
+    .replace(/<oli>/g, "<li>")
+    .replace(/<\/oli>/g, "</li>")
+
+    // Horizontal rule
+    .replace(/^---$/gm, "<hr>")
+
+    // Paragraphs: double newlines
+    .replace(/\n{2,}/g, "</p><p>")
+
+    // Single line breaks inside paragraphs
+    .replace(/\n/g, "<br>");
+
+  return `<p>${html}</p>`;
+}
 
 export default {
-  name: 'HomeView',
+  name: "HomeView",
   components: { LoadingIcon, MyTimer },
 
   computed: {
     isGetGPTAnswerAvailable() {
-      return !!this.currentText
-    }
+      return !!this.currentText || !!this.customQuestion?.trim();
+    },
+
+    // ✅ Computed property — re-renders markdown whenever ai_result changes
+    renderedResult() {
+      return renderMarkdown(this.ai_result);
+    },
   },
 
   data() {
@@ -113,7 +158,7 @@ export default {
       dgSocket: null,
       mediaStream: null,
       mediaRecorder: null,
-    }
+    };
   },
 
   mounted() {
@@ -127,15 +172,11 @@ export default {
   methods: {
     handleGlobalEnter(e) {
       if (e.key !== "Enter") return;
-
       const tag = document.activeElement?.tagName?.toLowerCase();
       const isTypingInField =
         tag === "textarea" ||
         (tag === "input" && document.activeElement?.type !== "button");
-
-      // optional: allow Enter everywhere except textarea
       if (isTypingInField && tag === "textarea") return;
-
       e.preventDefault();
       this.askCurrentText();
     },
@@ -156,6 +197,9 @@ export default {
 
       const gpt_system_prompt = config_util.gpt_system_prompt();
 
+      // Only send the last 500 chars of transcript to keep requests fast
+      const recentText = this.currentText.slice(-500);
+
       try {
         if (!apiKey) throw new Error("Anthropic API key not set!");
 
@@ -169,127 +213,156 @@ export default {
           },
           body: JSON.stringify({
             model: "claude-haiku-4-5-20251001",
-            max_tokens: 1024,
+            max_tokens: 400,           // ✅ Reduced for faster responses
+            stream: true,              // ✅ Streaming enabled
             system: gpt_system_prompt,
             messages: [
               {
                 role: "user",
-                content: `TRANSCRIPTION:
-${this.currentText}
-
-QUESTION:
-${this.customQuestion || "Answer the last question from the transcription."}`
-              }
-            ]
-          })
+                content: `TRANSCRIPTION:\n${recentText}\n\nQUESTION:\n${this.customQuestion || "Answer the last question from the transcription."
+                  }`,
+              },
+            ],
+          }),
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err?.error?.message || "API error");
+        }
 
-        if (data.error) throw new Error(data.error.message);
+        // ✅ Stream handling — text appears word-by-word
+        this.show_ai_thinking_effect = false;
+        this.ai_result = "";
 
-        this.ai_result = data.content?.[0]?.text || "No response";
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const lines = decoder.decode(value).split("\n");
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const json = line.slice(6).trim();
+            if (json === "[DONE]") break;
+            try {
+              const evt = JSON.parse(json);
+              if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+                this.ai_result += evt.delta.text;
+              }
+            } catch {
+              // skip malformed chunks
+            }
+          }
+        }
+
         this.customQuestion = "";
       } catch (e) {
-        this.ai_result = "Error: " + e.message;
+        this.ai_result = "**Error:** " + e.message;
       } finally {
         this.show_ai_thinking_effect = false;
       }
     },
 
     clearASRContent() {
-      this.currentText = ""
+      this.currentText = "";
     },
 
     // ─── Deepgram START ────────────────────────────────────────────────────
     async startCopilot() {
-      this.copilot_starting = true
+      this.copilot_starting = true;
 
-      const deepgramKey = config_util.deepgram_key()
+      const deepgramKey = config_util.deepgram_key();
       if (!deepgramKey) {
-        this.currentText = "Error: Deepgram API key not set. Add VUE_APP_DEEPGRAM_KEY to your .env file."
-        this.copilot_starting = false
-        return
+        this.currentText =
+          "Error: Deepgram API key not set. Add VUE_APP_DEEPGRAM_KEY to your .env file.";
+        this.copilot_starting = false;
+        return;
       }
 
       try {
-        // 1. Get microphone stream
-        this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        // 2. Open Deepgram WebSocket
-        const url = "wss://api.deepgram.com/v1/listen?language=en-US&punctuate=true&interim_results=false"
-        this.dgSocket = new WebSocket(url, ["token", deepgramKey])
+        const url =
+          "wss://api.deepgram.com/v1/listen?language=en-US&punctuate=true&interim_results=false";
+        this.dgSocket = new WebSocket(url, ["token", deepgramKey]);
 
         this.dgSocket.onopen = () => {
-          console.log("✅ Deepgram connected")
+          console.log("✅ Deepgram connected");
 
-          // 3. Start MediaRecorder and pipe audio to Deepgram
-          this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: "audio/webm" })
+          this.mediaRecorder = new MediaRecorder(this.mediaStream, {
+            mimeType: "audio/webm",
+          });
 
           this.mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0 && this.dgSocket.readyState === WebSocket.OPEN) {
-              this.dgSocket.send(event.data)
+            if (
+              event.data.size > 0 &&
+              this.dgSocket.readyState === WebSocket.OPEN
+            ) {
+              this.dgSocket.send(event.data);
             }
-          }
+          };
 
-          this.mediaRecorder.start(250) // send a chunk every 250ms
-
-          this.copilot_starting = false
-          this.state = "ing"
-          this.$refs.MyTimer.start()
-        }
+          this.mediaRecorder.start(250);
+          this.copilot_starting = false;
+          this.state = "ing";
+          this.$refs.MyTimer.start();
+        };
 
         this.dgSocket.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data)
-            const transcript = data?.channel?.alternatives?.[0]?.transcript
+            const data = JSON.parse(event.data);
+            const transcript = data?.channel?.alternatives?.[0]?.transcript;
             if (transcript && transcript.trim().length > 0) {
-              console.log("📝 transcript:", transcript)
-              this.currentText = (this.currentText ? this.currentText + "\n" : "") + transcript
+              console.log("📝 transcript:", transcript);
+              this.currentText =
+                (this.currentText ? this.currentText + "\n" : "") + transcript;
             }
           } catch (e) {
-            console.error("parse error:", e)
+            console.error("parse error:", e);
           }
-        }
+        };
 
         this.dgSocket.onerror = (err) => {
-          console.error("❌ Deepgram error:", err)
-          this.currentText = "Deepgram connection error. Check your API key in .env (VUE_APP_DEEPGRAM_KEY)"
-          this.copilot_starting = false
-          this.state = "end"
-        }
+          console.error("❌ Deepgram error:", err);
+          this.currentText =
+            "Deepgram connection error. Check your API key in .env (VUE_APP_DEEPGRAM_KEY)";
+          this.copilot_starting = false;
+          this.state = "end";
+        };
 
         this.dgSocket.onclose = (event) => {
-          console.log("🔌 Deepgram closed:", event.code, event.reason)
-        }
-
+          console.log("🔌 Deepgram closed:", event.code, event.reason);
+        };
       } catch (e) {
-        console.error("startCopilot error:", e)
-        this.currentText = "Error: " + e.message
-        this.copilot_starting = false
+        console.error("startCopilot error:", e);
+        this.currentText = "Error: " + e.message;
+        this.copilot_starting = false;
       }
     },
 
     // ─── Deepgram STOP ─────────────────────────────────────────────────────
     userStopCopilot() {
-      this.copilot_stopping = true
+      this.copilot_stopping = true;
 
       if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
-        this.mediaRecorder.stop()
+        this.mediaRecorder.stop();
       }
       if (this.dgSocket) {
-        this.dgSocket.close()
+        this.dgSocket.close();
       }
       if (this.mediaStream) {
-        this.mediaStream.getTracks().forEach(track => track.stop())
+        this.mediaStream.getTracks().forEach((track) => track.stop());
       }
 
-      this.copilot_stopping = false
-      this.state = "end"
-      this.$refs.MyTimer.stop()
-    }
-  }
-}
+      this.copilot_stopping = false;
+      this.state = "end";
+      this.$refs.MyTimer.stop();
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -401,11 +474,86 @@ ${this.customQuestion || "Answer the last question from the transcription."}`
   margin-left: 8px;
 }
 
+/* ✅ Markdown-rendered content styles */
 .ai_result_content {
   font-size: 14px;
   line-height: 1.8;
   color: #303133;
-  white-space: pre-wrap;
+}
+
+.ai_result_content :deep(p) {
+  margin: 0 0 10px 0;
+}
+
+.ai_result_content :deep(strong) {
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.ai_result_content :deep(em) {
+  font-style: italic;
+}
+
+.ai_result_content :deep(h1),
+.ai_result_content :deep(h2),
+.ai_result_content :deep(h3) {
+  font-weight: 700;
+  margin: 16px 0 8px;
+  color: #1d1d1d;
+}
+
+.ai_result_content :deep(h1) {
+  font-size: 20px;
+}
+
+.ai_result_content :deep(h2) {
+  font-size: 17px;
+}
+
+.ai_result_content :deep(h3) {
+  font-size: 15px;
+}
+
+.ai_result_content :deep(ul),
+.ai_result_content :deep(ol) {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.ai_result_content :deep(li) {
+  margin-bottom: 4px;
+}
+
+.ai_result_content :deep(code) {
+  background: #f0f2f5;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-family: monospace;
+  color: #d63384;
+}
+
+.ai_result_content :deep(pre) {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.ai_result_content :deep(pre code) {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+
+.ai_result_content :deep(hr) {
+  border: none;
+  border-top: 1px solid #e4e7ed;
+  margin: 16px 0;
 }
 
 .empty_state {
@@ -444,16 +592,6 @@ ${this.customQuestion || "Answer the last question from the transcription."}`
   color: #c0c4cc;
 }
 
-kbd {
-  background: #f0f2f5;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 12px;
-  font-family: monospace;
-  color: #303133;
-}
-
 .panel_footer {
   padding: 10px 12px;
   border-top: 1px solid #e4e7ed;
@@ -467,19 +605,5 @@ kbd {
 
 .ask_bar {
   align-items: center;
-}
-
-.ask_input {
-  flex: 1;
-}
-
-.title_function_bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 10px 20px;
-  border-top: 1px solid #e4e7ed;
-  background: #ffffff;
 }
 </style>
