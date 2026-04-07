@@ -6,7 +6,7 @@
       See <a :href="github_url" target="_blank">Github</a> for setup instructions.
     </div>
 
-    <h1>Open AI</h1>
+    <h1>Antropic AI</h1>
     <!-- <div class="desc_text">To use GPT, you need an API Key from the <a :href="open_ai_api_url" target="_blank">Open
       AI</a>
     </div>
@@ -17,16 +17,16 @@
 </el-input>
 </div> -->
 
-    <div class="separator">
+    <!-- <div class="separator">
       GPT Model:
       <el-radio-group v-model="gpt_model" @change="onKeyChange('gpt_model')">
         <el-radio label="gpt-3.5-turbo"></el-radio>
         <el-radio label="gpt-4"></el-radio>
       </el-radio-group>
-    </div>
+    </div> -->
 
     <div class="separator">
-      <div class="desc_text">GPT Prompt:</div>
+      <div class="desc_text">GPT Prompt here:</div>
       <el-input type="textarea" placeholder="You can setup custom prompt here" :rows="15" v-model="gpt_system_prompt"
         @change="onKeyChange('gpt_system_prompt')" />
     </div>
