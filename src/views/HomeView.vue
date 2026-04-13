@@ -1,8 +1,6 @@
 <template>
   <div class="homeview_container">
-
     <div class="center_container">
-
       <!-- Left: Narrow transcription sidebar -->
       <div class="sidebar_panel">
         <div class="panel_header">
