@@ -92,7 +92,7 @@ export default {
     // this.azure_language = config_util.azure_language()
 
     this.openai_key = localStorage.getItem("openai_key") || process.env.VUE_APP_OPENAI_KEY || "";
-    this.gpt_system_prompt = config_util.gpt_system_prompt() || "";
+    this.gpt_system_prompt = config_util.gpt_system_prompt();
     this.gpt_model = config_util.gpt_model() || "gpt-3.5-turbo";
     this.azure_token = localStorage.getItem("azure_token") || process.env.VUE_APP_AZURE_TOKEN || "";
     this.azure_region = config_util.azure_region() || process.env.VUE_APP_AZURE_REGION || "eastus";

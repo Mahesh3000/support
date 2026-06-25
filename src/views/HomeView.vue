@@ -182,7 +182,7 @@ export default {
     async askCurrentText() {
       if (this.show_ai_thinking_effect) return;
 
-      const apiKey = config_util.anthropic_key();
+      const apiKey = config_util.openai_key();
       const content = this.customQuestion?.trim() || this.currentText?.trim();
 
       if (!content) {
@@ -199,30 +199,49 @@ export default {
       const recentText = this.currentText.slice(-500);
 
       try {
-        if (!apiKey) throw new Error("Anthropic API key not set!");
+        if (!apiKey) throw new Error("OpenAI  API key not set!");
 
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-            "anthropic-dangerous-direct-browser-access": "true",
+            "Authorization": `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: "claude-haiku-4-5-20251001",
-            max_tokens: 400,           // ✅ Reduced for faster responses
-            stream: true,              // ✅ Streaming enabled
-            system: gpt_system_prompt,
+            model: "gpt-4o",
+            max_tokens: 400,
+            stream: true,
             messages: [
+              { role: "system", content: gpt_system_prompt },
               {
                 role: "user",
-                content: `TRANSCRIPTION:\n${recentText}\n\nQUESTION:\n${this.customQuestion || "Answer the last question from the transcription."
-                  }`,
+                content: `TRANSCRIPTION:\n${recentText}\n\nQUESTION:\n${this.customQuestion || "Answer the last question from the transcription."}`,
               },
             ],
           }),
         });
+        // const response = await fetch("https://api.anthropic.com/v1/messages", {
+        //   method: "POST",
+        //   headers: {
+        //     "Content-Type": "application/json",
+        //     "x-api-key": apiKey,
+        //     "anthropic-version": "2023-06-01",
+        //     "anthropic-dangerous-direct-browser-access": "true",
+        //   },
+        //   body: JSON.stringify({
+        //     model: "claude-sonnet-4-6",
+        //     max_tokens: 400,           // ✅ Reduced for faster responses
+        //     stream: true,              // ✅ Streaming enabled
+        //     system: gpt_system_prompt,
+        //     messages: [
+        //       {
+        //         role: "user",
+        //         content: `TRANSCRIPTION:\n${recentText}\n\nQUESTION:\n${this.customQuestion || "Answer the last question from the transcription."
+        //           }`,
+        //       },
+        //     ],
+        //   }),
+        // });
 
         if (!response.ok) {
           const err = await response.json();
@@ -246,9 +265,14 @@ export default {
             const json = line.slice(6).trim();
             if (json === "[DONE]") break;
             try {
+              // const evt = JSON.parse(json);
+              // if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+              //   this.ai_result += evt.delta.text;
+              // }
               const evt = JSON.parse(json);
-              if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
-                this.ai_result += evt.delta.text;
+              // Change this line:
+              if (evt.choices?.[0]?.delta?.content) {
+                this.ai_result += evt.choices[0].delta.content;
               }
             } catch {
               // skip malformed chunks
